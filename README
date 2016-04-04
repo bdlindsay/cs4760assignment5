@@ -1,1 +1,12 @@
 # cs4760assignment5
+# Brett Lindsay
+--------------------------
+Execution:
+make
+oss
+--------------------------
+
+The program follows the specifications listed at www.cs.umsl.edu/~sanjiv/classes/cs4760assignments/ass5.pdf.
+Resource requests and releases are waited on by a userProcess for the oss to handle/acknowledge their allocation/re-claiming. The process cannot continue without its requested resources, so it waits on this allocation. CPU utilitzation is listed as a decimal where 0 = 0% CPU utilization and 1.00 = 100% CPU utilization.
+
+Contact bdlvd2@mail.umsl.edu if there are any issues with the files.

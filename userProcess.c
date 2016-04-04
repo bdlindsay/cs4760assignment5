@@ -41,11 +41,10 @@ main (int argc, char *argv[]) {
 
 	// generate maximum claims
 	for(i = 0; i < 20; i++) {
-		//fprintf(stderr,"i: %d ahhahahah: %d\n",i,runInfo->rds[i].total);
 		if (runInfo->rds[i].total == 0) {
-			runInfo->rds[i].total = 5;
+			fprintf(stderr,"i: %d ahhahahah: %d\n",i,runInfo->rds[i].total);
+			runInfo->rds[i].total = 10;
 		}
-		//fprintf(stderr,"i: %d ahhahahah: %d\n",i,runInfo->rds[i].total);
 		pcb->maxClaim[i] = rand() % runInfo->rds[i].total; 
 	}
 
@@ -105,8 +104,8 @@ main (int argc, char *argv[]) {
 
 		// time to quit?
 		if (pcb->totalCpuTime > 1) {
-			r = rand() % 2; // 0-no, 1-yes
-			if (r == 1) {
+			r = rand() % 5; // 1-yes 
+			if (r >= 1) {
 				pcb->dTime = runInfo->lClock;
 				pcb->totalSysTime = pcb->dTime - pcb->cTime;
 				pcb->isCompleted = true;

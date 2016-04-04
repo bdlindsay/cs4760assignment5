@@ -80,7 +80,6 @@ main (int argc, char *argv[]) {
 				if (pcbs[next] != NULL && pcbs[next]->pid == 0) { // child process 
 					execl("userProcess", arg0, arg1, arg2, arg3, 0);
 				} 
-				//wait();
 			}
 			if (pcbs[next] != NULL) { // don't change nextCreate if fork failed
 				// next process creation time
@@ -119,7 +118,7 @@ void deadlock() {
 			continue;
 		}	
 		// if process has no request 
-		if ( pcbs[i]->action.num == 0 || pcbs[i]->action.isDone || pcbs[i]->isCompleted) {
+		if ( pcbs[i]->action.num == 0 ||  pcbs[i]->action.isDone || pcbs[i]->isCompleted) {
 			if (pcbs[i]->isCompleted) {
 				for (j = 0; j < 20; j++) { // iterate through all resources
 					if (pcbs[i]->claimed[j] != 0) { // release resource j if any allocated
@@ -139,31 +138,21 @@ void deadlock() {
 		if (pcbs[i]->action.isClaim) { // claim 
 			// process i needs resources, enough available? 
 			if (need <= runInfo->rds[rNum].available) { // can allocate
-				fprintf(stderr, "oss: Allocating %d of resource %d to process i\n", need, rNum, i);
+				fprintf(stderr, "oss: Allocating %d of resource %d to process %d\n", need, rNum, i);
 				fflush(stderr);
 				runInfo->rds[rNum].available -= need;
-				//runInfo->rds[rNum].allocations[i].num += need;
 				
 				// tell process allocation granted
 				sem_post(&pcbs[i]->sem);
 			}  else { // process i waits on semaphore : can't allocate
 				fprintf(stderr, "oss: making process %d wait for %d of resource %d\n", i, need, rNum);
 				fflush(stderr);
-				// keep track of which requests are outstanding
-				// pNum will keep track of how long it has waited
-				//fprintf(stderr, "TEST: tracking outstanding Process %d req -> %d %d %d\n", 
-			//		i, runInfo->rds[rNum].requests[i].pNum, rNum, need);
-				//runInfo->rds[rNum].requests[i].pNum += 1;
 			}	
 
 		} else { // release
-			//runInfo->rds[rNum].allocations[i] -= need;
-			fprintf(stderr, "Releasing %d of resource %d to process i\n", need, rNum, i);
+			fprintf(stderr, "Releasing %d of resource %d from process %d\n", need, rNum, i);
 			fflush(stderr);
 			runInfo->rds[rNum].available += need;
-			// TODO remove later
-			if (runInfo->rds[rNum].available > runInfo->rds[rNum].total) 
-				fprintf(stderr, "TEST: FAIL: %d %d\n", runInfo->rds[rNum].available, runInfo->rds[rNum].total);
 			// tell process release finished
 			sem_post(&pcbs[i]->sem);
 		}
@@ -176,7 +165,7 @@ void deadlock() {
 void updatePcbs(int usedPcbs[]) {
 	int i;
 
-	for (i = 0; i < 18; i++) {  // TODO change back
+	for (i = 0; i < 18; i++) { // for each pcb 
 		// continue if no pcb
 		if (pcbs[i] == NULL) {
 			continue;
@@ -201,15 +190,13 @@ void updatePcbs(int usedPcbs[]) {
 void updateClock(double r) {
 	// wait for chance to change clock
 	sleep(1); // don't let it reclaim
-	//sem_wait(runInfo->sem_id,0);
 	sem_wait(&runInfo->sem);
+
 	runInfo->lClock += r;
+
 	// signal others can update the clock
-	//sem_signal(runInfo->sem_id,0);
 	sem_post(&runInfo->sem);
 	fprintf(stderr, "oss: lClock: %.03f\n", runInfo->lClock); 
-		
-	//sleep(1); // slow it down
 }
 
 void initRunInfo(int shm_id) {
@@ -297,7 +284,7 @@ void removePcb(pcb_t *pcbs[], int i) {
 		return;
 	}
 
-	// TODO clean up zombie?
+	// clean up zombies
 	waitpid(pcbs[i]->pid,NULL,0);
 	// remove pcb semaphore
 	sem_destroy(&pcbs[i]->sem);
@@ -358,7 +345,7 @@ void free_mem() {
 		perror("fopen:endstats");
 	} else {
 		// overwrite/write to file
-		fprintf(fp,"End Stats:\nThroughput: %d\nAvg Turnaround: %.3f\n Avg Wait Time: %.3f\n",
+		fprintf(fp,"End Stats:\nThroughput: %d\nAvg Turnaround: %.3f\nAvg Wait Time: %.3f\n",
 			stats.tPut, stats.turnA, stats.waitT);
 		fprintf(fp,"TotalCpuTime: %.3f\nTotal Run Time: %.3f\nCPU Utilization: %.3f\n",
 			stats.totalCpuTime, runInfo->lClock, stats.cpuU);
