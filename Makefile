@@ -4,8 +4,8 @@ RM = rm
 
 EXEM = oss 
 EXES = userProcess 
-SRCSM = oss.c semaphore.c
-SRCSS = userProcess.c semaphore.c
+SRCSM = oss.c
+SRCSS = userProcess.c 
 OBJSM = ${SRCSM:.c=.o}
 OBJSS = ${SRCSS:.c=.o}
 
@@ -15,14 +15,14 @@ OBJSS = ${SRCSS:.c=.o}
 all : $(EXEM) $(EXES) #$(EXEPS)
 
 $(EXEM) : $(OBJSM)
-	$(CC) -o $@ $(OBJSM)
+	$(CC) -o $@ $(OBJSM) -pthread
 
-$(OBJSM) : oss.h semaphore.h
+$(OBJSM) : oss.h 
 
 $(EXES) : $(OBJSS)
-	$(CC) -o $@ $(OBJSS)
+	$(CC) -o $@ $(OBJSS) -pthread
 
-$(OBJSS) : oss.h semaphore.h
+$(OBJSS) : oss.h 
 
 clean :
 	$(RM) -f $(EXES) $(EXEM) $(OBJSS) $(OBJSM) endStats.txt
