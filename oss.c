@@ -88,7 +88,7 @@ main (int argc, char *argv[]) {
 			}
 		} // end create process if block
 		
-		// check for process requests and allocate if no deadlock could occur
+		// check for process requests and allocate if no deadlock would occur
 		deadlock(); // also collect released resources from userProcess before pcb is removed 
 
 		// check for finished processes
@@ -136,8 +136,8 @@ void deadlock() {
 		rNum = pcbs[i]->action.res;
 		need = pcbs[i]->action.num;
 		if (pcbs[i]->action.isClaim) { // claim 
-			// process i needs resources, enough available? 
-			if (need <= runInfo->rds[rNum].available) { // can allocate
+			// process i needs resources, enough available? || ignore check if shared resource
+			if (need <= runInfo->rds[rNum].available || runInfo->rds[rNum].isShared) { // can allocate
 				fprintf(stderr, "oss: Allocating %d of resource %d to process %d\n", need, rNum, i);
 				fflush(stderr);
 				runInfo->rds[rNum].available -= need;
@@ -352,7 +352,7 @@ void free_mem() {
 		fclose(fp);
 	}
 	// write to stderr
-	fprintf(stderr,"End Stats:\nThroughput: %d\nAvg Turnaround: %.3f\n Avg Wait Time: %.3f\n",
+	fprintf(stderr,"End Stats:\nThroughput: %d\nAvg Turnaround: %.3f\nAvg Wait Time: %.3f\n",
 		stats.tPut, stats.turnA, stats.waitT);
 	fprintf(stderr,"TotalCpuTime: %.3f\nTotal Run Time: %.3f\nCPU Utilization: %.3f\n",
 		stats.totalCpuTime, runInfo->lClock, stats.cpuU);

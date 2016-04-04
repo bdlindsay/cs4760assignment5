@@ -111,8 +111,6 @@ main (int argc, char *argv[]) {
 				pcb->isCompleted = true;
 				// release resources
 				fprintf(stderr, "Process %d: release all and die\n", pNum);
-				//sem_wait(&pcb->sem);
-				//fprintf(stderr, "(done)Process %d: release all and die\n", pNum);
 			}	
 		}
 		fflush(stderr);
@@ -125,10 +123,6 @@ main (int argc, char *argv[]) {
 
 	shmdt(pcb);
 	pcb = NULL;
-
-	//TODO
-	//fprintf(stderr, "DEBUG:i: %d resource:  %d \n", pNum, pcb->action.res);
-	//fprintf(stderr, "AFTER DEBUG\n");
 }
 
 void addToClock(double d) {
