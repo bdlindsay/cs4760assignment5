@@ -44,7 +44,7 @@ main (int argc, char *argv[]) {
 	initRunInfo(shm_id);
 
 	while(1) { // infinite loop until alarm finishes
-		if (runInfo->lClock > 30) {
+		if (runInfo->lClock > 60) {
 			fprintf(stderr,"Timeout duration reached\n");
 			raise(SIGINT);
 		}
@@ -89,11 +89,12 @@ main (int argc, char *argv[]) {
 			}
 		} // end create process if block
 		
+		// check for process requests and allocate if no deadlock could occur
+		deadlock(); // also collect released resources from userProcess before pcb is removed 
+
 		// check for finished processes
 		updatePcbs(usedPcbs);
 
-		// check for process requests and allocate if no deadlock could occur
-		//deadlock();
 
 		// update logical clock
 		r = (double)(rand() % 1000) / 1000;	
@@ -108,8 +109,8 @@ main (int argc, char *argv[]) {
 // pcbs->action is what each process needs
 // runInfo->rds is what the system has available/has allocated
 void deadlock() {
-	int i, need, available, rNum;
-	fprintf(stderr,"Seeing if I can allocate/release stuff\n");
+	int i, j, need, available, rNum;
+	fprintf(stderr,"oss: Allocate/Release Resources Check\n");
 	// loop through process here instead of a separate loop calling deadlock
 	// i is process number
 	for(i = 0; i < 18; i++) {
@@ -119,7 +120,16 @@ void deadlock() {
 		}	
 		// if process has no request 
 		if ( pcbs[i]->action.num == 0 || pcbs[i]->action.isDone || pcbs[i]->isCompleted) {
-			sem_post(&pcbs[i]->sem);
+			if (pcbs[i]->isCompleted) {
+				for (j = 0; j < 20; j++) { // iterate through all resources
+					if (pcbs[i]->claimed[j] != 0) { // release resource j if any allocated
+						fprintf(stderr, "oss: Releasing %d of res %d from finished process %d\n",
+							pcbs[i]->claimed[j], j, i);
+						runInfo->rds[j].available += pcbs[i]->claimed[j];
+						pcbs[i]->claimed[j] = 0;
+					}
+				}
+			}
 			sem_post(&pcbs[i]->sem);
 			continue;
 		}	
@@ -129,13 +139,16 @@ void deadlock() {
 		if (pcbs[i]->action.isClaim) { // claim 
 			// process i needs resources, enough available? 
 			if (need <= runInfo->rds[rNum].available) { // can allocate
+				fprintf(stderr, "oss: Allocating %d of resource %d to process i\n", need, rNum, i);
+				fflush(stderr);
 				runInfo->rds[rNum].available -= need;
 				//runInfo->rds[rNum].allocations[i].num += need;
-
+				
 				// tell process allocation granted
 				sem_post(&pcbs[i]->sem);
-				sem_post(&pcbs[i]->sem);
 			}  else { // process i waits on semaphore : can't allocate
+				fprintf(stderr, "oss: making process %d wait for %d of resource %d\n", i, need, rNum);
+				fflush(stderr);
 				// keep track of which requests are outstanding
 				// pNum will keep track of how long it has waited
 				//fprintf(stderr, "TEST: tracking outstanding Process %d req -> %d %d %d\n", 
@@ -145,16 +158,17 @@ void deadlock() {
 
 		} else { // release
 			//runInfo->rds[rNum].allocations[i] -= need;
+			fprintf(stderr, "Releasing %d of resource %d to process i\n", need, rNum, i);
+			fflush(stderr);
 			runInfo->rds[rNum].available += need;
 			// TODO remove later
 			if (runInfo->rds[rNum].available > runInfo->rds[rNum].total) 
 				fprintf(stderr, "TEST: FAIL: %d %d\n", runInfo->rds[rNum].available, runInfo->rds[rNum].total);
 			// tell process release finished
 			sem_post(&pcbs[i]->sem);
-			sem_post(&pcbs[i]->sem);
 		}
 	}
-	fprintf(stderr,"Finished seeing if I can allocate/release stuff\n");
+	fprintf(stderr,"oss: End Allocate/Release Resources Check\n");
 	fflush(stderr);
 }
 
@@ -201,6 +215,7 @@ void updateClock(double r) {
 void initRunInfo(int shm_id) {
 	int i; // index
 	int r; // rand int
+	int sVar; // shared variance
 
 	runInfo->shm_id = shm_id;
 
@@ -209,8 +224,10 @@ void initRunInfo(int shm_id) {
 		// requests, allocations, & releases arrays init to { NULL }
 		runInfo->rds[i].total = (rand() % 10) + 1; // 1-10
 		runInfo->rds[i].available = runInfo->rds[i].total;	
-		// 20% shared TODO make this random +/- 5%
-		if (i < 16) {
+		// 20% +/- 5% shared 
+		r = (rand() % 3) + 3; // 3-5
+		sVar = 20 - r;
+		if (i < sVar) {
 			runInfo->rds[i].isShared = false;		
 		} else {
 			runInfo->rds[i].isShared = true;

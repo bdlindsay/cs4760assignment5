@@ -62,14 +62,14 @@ main (int argc, char *argv[]) {
 			pcb->action.isClaim = true;
 			a = pcb->maxClaim[pcb->action.res] - pcb->claimed[pcb->action.res];	
 			if (a != 0) { // don't mod 0
-				pcb->action.num = rand() % a;
+				pcb->action.num = (rand() % a) + 1;
 				pcb->action.isDone = false;
 			} else {
 				pcb->action.num = 0;
 				pcb->action.isDone = true;
 			}
 			// make request
-			//sem_wait(&pcb->sem);
+			sem_wait(&pcb->sem);
 			// request granted
 			pcb->action.isDone = true;
 			pcb->total += pcb->action.num;
@@ -88,12 +88,12 @@ main (int argc, char *argv[]) {
 			pcb->action.num = (rand() % a) + 1; // always release at least 1
 			pcb->action.isDone = false;
 			// release
-			//sem_wait(&pcb->sem);
+			sem_wait(&pcb->sem);
 			// oss acknowledged release
 			pcb->action.isDone = true;
 			pcb->total -= pcb->action.num;
 			pcb->claimed[pcb->action.res] -= pcb->action.num;
-			fprintf(stderr, "Process %d: release %d of R:%d (%d,%d)\n", pNum, pcb->action.num,
+			fprintf(stderr, "Process %d: release %d of R:%d (%d/%d)\n", pNum, pcb->action.num,
 				pcb->action.res,pcb->claimed[pcb->action.res], pcb->maxClaim[pcb->action.res]);
 		}
 
@@ -107,11 +107,12 @@ main (int argc, char *argv[]) {
 		if (pcb->totalCpuTime > 1) {
 			r = rand() % 2; // 0-no, 1-yes
 			if (r == 1) {
-				pcb->isCompleted = true;
 				pcb->dTime = runInfo->lClock;
 				pcb->totalSysTime = pcb->dTime - pcb->cTime;
-				// TODO release resources
+				pcb->isCompleted = true;
+				// release resources
 				fprintf(stderr, "Process %d: release all and die\n", pNum);
+				//sem_wait(&pcb->sem);
 				//fprintf(stderr, "(done)Process %d: release all and die\n", pNum);
 			}	
 		}
