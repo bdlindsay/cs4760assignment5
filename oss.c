@@ -108,7 +108,8 @@ main (int argc, char *argv[]) {
 // pcbs->action is what each process needs
 // runInfo->rds is what the system has available/has allocated
 void deadlock() {
-	int i, j, need, available, rNum;
+	int i, j, n, need, available, rNum;
+	bool canFinish = true;
 	fprintf(stderr,"oss: Allocate/Release Resources Check\n");
 	// loop through process here instead of a separate loop calling deadlock
 	// i is process number
@@ -138,12 +139,27 @@ void deadlock() {
 		if (pcbs[i]->action.isClaim) { // claim 
 			// process i needs resources, enough available? || ignore check if shared resource
 			if (need <= runInfo->rds[rNum].available || runInfo->rds[rNum].isShared) { // can allocate
-				fprintf(stderr, "oss: Allocating %d of resource %d to process %d\n", need, rNum, i);
+				fprintf(stderr, "oss: Attempt allocating %d of resource %d to process %d\n", need, rNum, i);
 				fflush(stderr);
 				runInfo->rds[rNum].available -= need;
-				
-				// tell process allocation granted
-				sem_post(&pcbs[i]->sem);
+
+				canFinish = true; // reset bool var for deadlock avoidance
+				for (n = 0; n < 18; n++) { // deadlock avoidance
+					if (pcbs[n] == NULL) { continue; } // skip inactive pcbs
+					if (n != i) { // don't have to check self
+						// if the request would possible cause a deadlock
+						if (runInfo->rds[rNum].available <= (pcbs[n]->maxClaim[rNum] - pcbs[n]->claimed[rNum])) {
+							// request has some chance of causing deadlock
+							runInfo->rds[rNum].available += need;
+							canFinish = false;	
+							fprintf(stderr, "oss: Process %d request might cause deadlock. Not allocating.\n", i);
+						}
+					}
+				}
+				// tell process allocation granted if it wouldn't cause a deadlock
+				if (canFinish) {
+					sem_post(&pcbs[i]->sem);
+				}
 			}  else { // process i waits on semaphore : can't allocate
 				fprintf(stderr, "oss: making process %d wait for %d of resource %d\n", i, need, rNum);
 				fflush(stderr);
